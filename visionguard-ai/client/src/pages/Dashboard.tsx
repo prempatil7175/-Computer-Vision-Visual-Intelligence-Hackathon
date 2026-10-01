@@ -1,15 +1,51 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import StatCard from '../components/StatCard';
 import SeverityBadge from '../components/SeverityBadge';
-import { Link } from 'react-router-dom';
-import { Activity, Camera, Target, Zap } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Activity, Camera, Target, Zap, Loader2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 const Dashboard = () => {
-  const recentAnomalies = [
-    { id: '1', category: 'PPE_Violation', severity: 'Critical', project: 'Downtown Highrise', time: '10 mins ago' },
-    { id: '2', category: 'Concrete_Crack', severity: 'Moderate', project: 'Bridge Alpha', time: '1 hr ago' },
-    { id: '3', category: 'Corrosion_Rust', severity: 'Low', project: 'Sector 7G', time: '3 hrs ago' },
-  ];
+  const [anomalies, setAnomalies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchAnomalies = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('anomalies')
+          .select(`
+            id,
+            category,
+            severity,
+            created_at,
+            inspection_id,
+            inspections (
+              projects (
+                name
+              )
+            )
+          `)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (error) throw error;
+        setAnomalies(data || []);
+      } catch (err) {
+        console.error('Error fetching anomalies:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnomalies();
+  }, []);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -39,7 +75,7 @@ const Dashboard = () => {
         />
         <StatCard 
           title="Critical Anomalies" 
-          value="3" 
+          value={anomalies.filter(a => a.severity === 'Critical').length} 
           description="Requires immediate action" 
           icon={<Zap size={28} className="text-rose-500" />}
           trend="down"
@@ -59,25 +95,42 @@ const Dashboard = () => {
           <h3 className="text-xl font-bold text-slate-800 font-outfit tracking-tight">Recent Anomalies</h3>
           <button className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">View All &rarr;</button>
         </div>
-        <ul className="divide-y divide-slate-100/50 bg-white/30">
-          {recentAnomalies.map((anomaly) => (
-            <li key={anomaly.id} className="px-8 py-5 flex items-center justify-between hover:bg-white/80 transition-colors cursor-pointer group">
-              <div className="flex items-center gap-4">
-                <div className="w-2 h-2 rounded-full bg-slate-300 group-hover:bg-indigo-500 transition-colors" />
-                <div>
-                  <p className="text-base font-semibold text-slate-800">{anomaly.category.replace('_', ' ')}</p>
-                  <p className="text-sm font-medium text-slate-500">{anomaly.project} <span className="mx-1">•</span> {anomaly.time}</p>
+        
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="animate-spin text-indigo-600" size={32} />
+          </div>
+        ) : anomalies.length === 0 ? (
+          <div className="py-12 text-center text-slate-500 font-medium">
+            No anomalies found. Good job!
+          </div>
+        ) : (
+          <ul className="divide-y divide-slate-100/50 bg-white/30">
+            {anomalies.map((anomaly) => (
+              <li 
+                key={anomaly.id} 
+                onClick={() => navigate(`/inspections/${anomaly.inspection_id}`)}
+                className="px-8 py-5 flex items-center justify-between hover:bg-white/80 transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-2 h-2 rounded-full bg-slate-300 group-hover:bg-indigo-500 transition-colors" />
+                  <div>
+                    <p className="text-base font-semibold text-slate-800">{anomaly.category.replace('_', ' ')}</p>
+                    <p className="text-sm font-medium text-slate-500">
+                      {anomaly.inspections?.projects?.name || 'Unknown Project'} <span className="mx-1">•</span> {formatDate(anomaly.created_at)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-6">
-                <SeverityBadge severity={anomaly.severity} />
-                <div className="text-slate-400 group-hover:text-indigo-600 transition-colors">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                <div className="flex items-center gap-6">
+                  <SeverityBadge severity={anomaly.severity} />
+                  <div className="text-slate-400 group-hover:text-indigo-600 transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                  </div>
                 </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
