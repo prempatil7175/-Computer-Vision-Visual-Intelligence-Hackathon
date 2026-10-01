@@ -1,4 +1,3 @@
-import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import SeverityBadge from '../components/SeverityBadge';
 import { ArrowLeft, CheckCircle2, ShieldAlert } from 'lucide-react';

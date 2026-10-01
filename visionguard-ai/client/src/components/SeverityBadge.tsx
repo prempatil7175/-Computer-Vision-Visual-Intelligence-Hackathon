@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, AlertCircle, Info } from 'lucide-react';
 
 const SeverityBadge = ({ severity }: { severity: string }) => {
