@@ -13,12 +13,12 @@ export const envSchema = z.object({
   
   GEMINI_API_KEY: z.string().min(1),
   GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
-  GEMINI_TIMEOUT_MS: z.string().transform(Number).default("45000"),
+  GEMINI_TIMEOUT_MS: z.string().default("45000").transform(Number),
   
-  DAILY_AI_FRAME_QUOTA: z.string().transform(Number).default("2000"),
-  DATA_RETENTION_DAYS: z.string().transform(Number).default("180"),
+  DAILY_AI_FRAME_QUOTA: z.string().default("2000").transform(Number),
+  DATA_RETENTION_DAYS: z.string().default("180").transform(Number),
   
-  INTEGRATIONS_DRY_RUN: z.string().transform((s) => s === "true").default("true"),
+  INTEGRATIONS_DRY_RUN: z.string().default("true").transform((s) => s === "true"),
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_SMS_FROM: z.string().optional(),
